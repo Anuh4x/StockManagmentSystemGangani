@@ -1,226 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Shop Stock Manager</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spare Part Stock Management</title>
 
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        background: #f5f6fa;
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f7fa; color: #333; }
+
+    .top-bar {
+      width: 100%;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(10px);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
     }
 
-    header {
-        display: flex;
-        justify-content: space-between;
-        padding: 15px 20px;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        position: sticky;
-        top: 0;
-        z-index: 10;
+    .btn {
+      padding: 10px 20px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
     }
 
-    h2 {
-        margin: 0;
+    .container { padding: 100px 20px 40px; max-width: 1100px; margin: auto; }
+
+    .glass-card {
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(12px);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
 
-    button {
-        padding: 10px 18px;
-        border: none;
-        background: black;
-        color: white;
-        border-radius: 8px;
-        cursor: pointer;
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
+
+    /* Popup */
+    .popup-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      justify-content: center;
+      align-items: center;
     }
 
-    .card {
-        margin: 20px;
-        padding: 20px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    .popup {
+      width: 90%; max-width: 400px;
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(15px);
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 4px 25px rgba(0,0,0,0.2);
     }
 
-    input, select {
-        width: 100%;
-        padding: 10px;
-        margin: 6px 0;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-    }
+    input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #bbb; margin-top: 10px; }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-
-    th, td {
-        padding: 10px;
-        text-align: left;
-        border-bottom: 1px solid #eee;
-    }
-
-    .delete-btn {
-        width: 24px;
-        cursor: pointer;
-    }
-
-    /* MOBILE RESPONSIVE TABLE */
-    @media (max-width: 700px) {
-        table, thead, tbody, th, td, tr {
-            display: block;
-        }
-        thead { display: none; }
-        tr {
-            margin-bottom: 15px;
-            background: #fff;
-            padding: 10px;
-            border-radius: 10px;
-        }
-        td {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 5px;
-        }
-        td::before {
-            content: attr(data-label);
-            font-weight: bold;
-        }
-    }
-</style>
+    .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+    .cancel-btn { background: #888; }
+  </style>
 </head>
 <body>
 
-<header>
-    <h2>Gangani Auto Electricals</h2>
-    <button onclick="openForm()">Add Item</button>
-</header>
+  <div class="top-bar">
+    <div class="logo" style="font-size:1.4rem; font-weight:bold;">Gangani Auto Electricals</div>
+    <button class="btn" onclick="openPopup()">Add Item</button>
+  </div>
 
-<div class="card">
-    <h3>Search Stock</h3>
-    <input id="search" type="text" placeholder="Search part name or number..." onkeyup="filterTable()">
-</div>
+  <div class="container">
+    <div class="glass-card">
+      <h2>Search Stock</h2>
+      <input type="text" id="searchInput" placeholder="Search part name or number..." onkeyup="filterStock()" />
 
-<div class="card">
-    <table id="stockTable">
+      <table>
         <thead>
-            <tr>
-                <th>Part Name</th>
-                <th>Vehicle</th>
-                <th>Part No</th>
-                <th>Stock</th>
-                <th>Buy Price</th>
-                <th>Sell Price</th>
-                <th>Delete</th>
-            </tr>
+          <tr>
+            <th>Part Name</th>
+            <th>Vehicle</th>
+            <th>Part No.</th>
+            <th>Stock</th>
+            <th>Buy Price</th>
+            <th>Sell Price</th>
+            <th>Delete</th>
+          </tr>
         </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
-</div>
-
-<!-- POPUP FORM -->
-<div id="popup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;">
-    <div class="card" style="width:90%; max-width:400px;">
-        <h3>Add New Item</h3>
-
-        <input id="pname" placeholder="Part Name">
-        <input id="vehicle" placeholder="Vehicle">
-        <input id="pno" placeholder="Part Number">
-        <input id="stock" placeholder="Stock" type="number">
-        <input id="buy" placeholder="Buy Price" type="number">
-        <input id="sell" placeholder="Sell Price" type="number">
-
-        <button onclick="addItem()" style="width:100%; margin-top:10px;">Save Item</button>
-        <button onclick="closeForm()" style="width:100%; margin-top:10px; background:#aaa;">Cancel</button>
+        <tbody id="stockTable"></tbody>
+      </table>
     </div>
-</div>
+  </div>
 
-<!-- FIREBASE CDN -->
+  <!-- Popup -->
+  <div class="popup-bg" id="popupBg">
+    <div class="popup">
+      <h3>Add New Part</h3>
+
+      <input type="text" id="pname" placeholder="Part Name" />
+      <input type="text" id="vehicle" placeholder="Vehicle" />
+      <input type="text" id="partno" placeholder="Part Number" />
+      <input type="number" id="stock" placeholder="Stock Amount" />
+      <input type="number" id="buy" placeholder="Buy Price" />
+      <input type="number" id="sell" placeholder="Sell Price" />
+
+      <div class="btn-row">
+        <button class="btn" onclick="addItem()">Add Item</button>
+        <button class="btn cancel-btn" onclick="closePopup()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+<!-- FIREBASE SCRIPTS -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
 
 <script>
-    // Your Firebase Config
-    const firebaseConfig = {
-        apiKey: "AIzaSyBN9LWPP0tebZiCtXMAKatKivb5lX0g1_g",
-        authDomain: "shopstock-d304a.firebaseapp.com",
-        databaseURL: "https://shopstock-d304a-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "shopstock-d304a",
-        storageBucket: "shopstock-d304a.firebasestorage.app",
-        messagingSenderId: "82450149368",
-        appId: "1:82450149368:web:3772ec3a4d96d8c1ecf00d",
-        measurementId: "G-0VWDCPSVSX"
+  // Firebase Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBN9LWPP0tebZiCtXMAKatKivb5lX0g1_g",
+    authDomain: "shopstock-d304a.firebaseapp.com",
+    databaseURL: "https://shopstock-d304a-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "shopstock-d304a",
+    storageBucket: "shopstock-d304a.firebasestorage.app",
+    messagingSenderId: "82450149368",
+    appId: "1:82450149368:web:3772ec3a4d96d8c1ecf00d",
+    measurementId: "G-0VWDCPSVSX"
+  };
+
+  // Init Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function openPopup() {
+    document.getElementById("popupBg").style.display = "flex";
+  }
+
+  function closePopup() {
+    document.getElementById("popupBg").style.display = "none";
+  }
+
+  function addItem() {
+    const item = {
+      name: pname.value,
+      vehicle: vehicle.value,
+      partno: partno.value,
+      stock: stock.value,
+      buy: buy.value,
+      sell: sell.value,
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    db.ref("parts/" + item.partno).set(item);
 
-    // SHOW POPUP
-    function openForm() { document.getElementById("popup").style.display = "flex"; }
-    function closeForm() { document.getElementById("popup").style.display = "none"; }
+    closePopup();
+    loadStock();
 
-    // ADD ITEM
-    function addItem() {
-        let item = {
-            pname: pname.value,
-            vehicle: vehicle.value,
-            pno: pno.value,
-            stock: stock.value,
-            buy: buy.value,
-            sell: sell.value
-        };
+    document.querySelectorAll(".popup input").forEach(i => i.value = "");
+  }
 
-        db.ref("items/" + item.pno).set(item);
+  function deleteItem(partno) {
+    db.ref("parts/" + partno).remove();
+  }
 
-        closeForm();
-        loadData();
-    }
+  function loadStock() {
+    db.ref("parts").on("value", snap => {
+      const table = document.getElementById("stockTable");
+      table.innerHTML = "";
 
-    // LOAD DATA
-    function loadData() {
-        db.ref("items").on("value", snapshot => {
-            let table = "";
-            snapshot.forEach(child => {
-                let d = child.val();
-                table += `
-                <tr>
-                    <td data-label="Part Name">${d.pname}</td>
-                    <td data-label="Vehicle">${d.vehicle}</td>
-                    <td data-label="Part No">${d.pno}</td>
-                    <td data-label="Stock">${d.stock}</td>
-                    <td data-label="Buy Price">${d.buy}</td>
-                    <td data-label="Sell Price">${d.sell}</td>
-                    <td data-label="Delete">
-                        <img class="delete-btn" onclick="deleteItem('${d.pno}')" 
-                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23dc3545'%3E%3Cpath d='M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z'/%3E%3C/svg%3E">
-                    </td>
-                </tr>`;
-            });
-            document.getElementById("tableBody").innerHTML = table;
-        });
-    }
+      snap.forEach(child => {
+        let item = child.val();
 
-    loadData();
+        table.innerHTML += `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.vehicle}</td>
+            <td>${item.partno}</td>
+            <td>${item.stock}</td>
+            <td>${item.buy}</td>
+            <td>${item.sell}</td>
+            <td>
+              <button onclick="deleteItem('${item.partno}')" style="background:none; border:none; cursor:pointer;">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23dc3545'%3E%3Cpath d='M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z'/%3E%3C/svg%3E" width="20"/>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    });
+  }
 
-    // DELETE
-    function deleteItem(pno) {
-        db.ref("items/" + pno).remove();
-    }
+  loadStock();
 
-    // SEARCH FILTER
-    function filterTable() {
-        let q = document.getElementById("search").value.toLowerCase();
-        let rows = document.querySelectorAll("#tableBody tr");
+  function filterStock() {
+    const q = searchInput.value.toLowerCase();
+    const rows = document.querySelectorAll("#stockTable tr");
 
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
-        });
-    }
+    rows.forEach(row => {
+      row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
+    });
+  }
 </script>
 
 </body>
