@@ -66,8 +66,8 @@
       padding: 34px 20px 28px;
       border-radius: 20px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      position: relative;
     }
-
 
     table {
       width: 100%;
@@ -124,50 +124,31 @@
     }
 
     @media (max-width: 600px) {
+      table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
 
-  .glass-card {
-    padding: 22px 12px;
-  }
-
-  th, td {
-    font-size: 0.8rem;
-    padding: 10px 6px;
-  }
-
-  /* Let table scroll horizontally on small screens */
-  table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
-
-  .add-btn-overlay {
-    right: 10px;
-    top: -27px;
-    left: 5px;
-    padding: 8px 14px;
-    font-size: 0.85rem;
-  }
-
-  .btn {
-    padding: 9px 14px;
-    font-size: 0.9rem;
-  }
-}
+      .add-btn-overlay {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+      }
+    }
   </style>
 </head>
 
 <body>
 
-  <div class="top-bar" style="display:flex; justify-content:space-between; align-items:center;">
+  <div class="top-bar">
     <div class="logo" style="font-size:1.4rem; font-weight:bold;">Gangani Auto Electricals</div>
-    <!-- Removed Add Item from top-bar so it can sit on the card -->
   </div>
 
   <div class="container">
-    <!-- Add Item button moved here and positioned over the glass card -->
     <div class="glass-card">
+
       <button class="btn add-btn-overlay" onclick="openPopup()">Add Item</button>
+
       <h2>Search Stock</h2>
       <input type="text" id="searchInput" placeholder="Search part name or number..." onkeyup="filterStock()" />
 
@@ -185,13 +166,14 @@
         </thead>
         <tbody id="stockTable"></tbody>
       </table>
+
     </div>
   </div>
 
   <!-- Popup -->
   <div class="popup-bg" id="popupBg">
     <div class="popup">
-      <h3>Add New Part</h3>
+      <h3 id="popupTitle">Add New Part</h3>
 
       <input type="text" id="pname" placeholder="Part Name" />
       <input type="text" id="vehicle" placeholder="Vehicle" />
@@ -201,7 +183,7 @@
       <input type="number" id="sell" placeholder="Sell Price" />
 
       <div class="btn-row">
-        <button class="btn" onclick="addItem()">Add Item</button>
+        <button class="btn" id="saveBtn" onclick="addItem()">Add Item</button>
         <button class="btn cancel-btn" onclick="closePopup()">Cancel</button>
       </div>
     </div>
@@ -210,12 +192,18 @@
   <!-- Firebase Script -->
   <script type="module">
 
-    // Import Firebase SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getDatabase, ref, set, push, get, child, remove }
-      from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import {
+      getDatabase,
+      ref,
+      push,
+      set,
+      get,
+      child,
+      update,
+      remove
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
-    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBN9LWPP0tebZiCtXMAKatKivb5lX0g1_g",
       authDomain: "shopstock-d304a.firebaseapp.com",
@@ -224,97 +212,137 @@
       storageBucket: "shopstock-d304a.firebasestorage.app",
       messagingSenderId: "82450149368",
       appId: "1:82450149368:web:3772ec3a4d96d8c1ecf00d",
-      measurementId: "G-0VWDCPSVSX"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // ---------- Open + Close Popup ----------
-    window.openPopup = () => document.getElementById('popupBg').style.display = 'flex';
-    window.closePopup = () => document.getElementById('popupBg').style.display = 'none';
+    let editKey = null;
 
-    // ---------- Load Stock ----------
+    // OPEN POPUP
+    window.openPopup = function () {
+      editKey = null;
+      document.getElementById("popupTitle").innerText = "Add New Part";
+      document.getElementById("saveBtn").innerText = "Add Item";
+      document.querySelectorAll('.popup input').forEach(i => i.value = "");
+      document.getElementById("popupBg").style.display = "flex";
+    };
+
+    // CLOSE POPUP
+    window.closePopup = function () {
+      document.getElementById("popupBg").style.display = "none";
+    };
+
+    // LOAD STOCK
     function loadStock() {
       const dbRef = ref(db, "stock");
-
       get(dbRef).then(snapshot => {
         if (snapshot.exists()) {
-          const list = Object.values(snapshot.val());
-          displayStock(list);
+          displayStock(Object.entries(snapshot.val()));
         } else {
           displayStock([]);
         }
       });
     }
+    loadStock();
 
-    loadStock(); // Load on start
-
-    // ---------- Add Item ----------
+    // ADD NEW ITEM
     window.addItem = function () {
       const item = {
-        id: Date.now(),
         name: pname.value,
         vehicle: vehicle.value,
         partno: partno.value,
         stock: stock.value,
         buy: buy.value,
-        sell: sell.value
+        sell: sell.value,
       };
 
       const newRef = push(ref(db, "stock"));
       set(newRef, item).then(() => {
         closePopup();
         loadStock();
-        document.querySelectorAll('.popup input').forEach(i => i.value = "");
       });
+    }
+
+    // EDIT ITEM — load values into popup
+    window.editItem = function (key, item) {
+      editKey = key;
+
+      document.getElementById("popupTitle").innerText = "Edit Item";
+      document.getElementById("saveBtn").innerText = "Save Changes";
+      document.getElementById("saveBtn").onclick = saveEdit;
+
+      pname.value = item.name;
+      vehicle.value = item.vehicle;
+      partno.value = item.partno;
+      stock.value = item.stock;
+      buy.value = item.buy;
+      sell.value = item.sell;
+
+      popupBg.style.display = "flex";
     };
 
-    // ---------- Delete Item ----------
-    window.deleteItem = function (id) {
-      const dbRef = ref(db, "stock");
+    // SAVE EDITED ITEM
+    function saveEdit() {
+      const updatedItem = {
+        name: pname.value,
+        vehicle: vehicle.value,
+        partno: partno.value,
+        stock: stock.value,
+        buy: buy.value,
+        sell: sell.value,
+      };
 
-      get(dbRef).then(snapshot => {
-        if (!snapshot.exists()) return;
-
-        const data = snapshot.val();
-        const key = Object.keys(data).find(k => data[k].id === id);
-
-        if (key) {
-          remove(child(dbRef, key)).then(() => loadStock());
-        }
+      update(ref(db, "stock/" + editKey), updatedItem).then(() => {
+        closePopup();
+        loadStock();
       });
+    }
+
+    // DELETE ITEM
+    window.deleteItem = function (key) {
+      remove(ref(db, "stock/" + key)).then(() => loadStock());
     };
 
-    // ---------- Display Stock ----------
-    function displayStock(data) {
+    // DISPLAY STOCK TABLE
+    function displayStock(items) {
       const table = document.getElementById("stockTable");
       table.innerHTML = "";
 
-      data.forEach(item => {
+      items.forEach(([key, item]) => {
         table.innerHTML += `
-      <tr>
-        <td>${item.partno}</td>
-        <td>${item.name}</td>
-        <td>${item.vehicle}</td>
-        <td>${item.stock}</td>
-        <td>${item.buy}</td>
-        <td>${item.sell}</td>
-        <td>
-          <button onclick="deleteItem(${item.id})"
-            style="background:none; border:none; cursor:pointer;">
-            <img 
-              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23dc3545'%3E%3Cpath d='M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z'/%3E%3C/svg%3E"
-              width="20"
-            />
-          </button>
-        </td>
-      </tr>
-    `;
+          <tr>
+            <td>${item.partno}</td>
+            <td>${item.name}</td>
+            <td>${item.vehicle}</td>
+            <td>${item.stock}</td>
+            <td>${item.buy}</td>
+            <td>${item.sell}</td>
+            <td style="display:flex; gap:15px;">
+
+              <!-- EDIT ICON -->
+              <img
+                width="22"
+                style="cursor:pointer"
+                onclick='editItem("${key}", ${JSON.stringify(item)})'
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23007bff' viewBox='0 0 24 24'%3E%3Cpath d='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z'/%3E%3C/svg%3E"
+              />
+
+              <!-- DELETE ICON -->
+              <img
+                width="22"
+                style="cursor:pointer"
+                onclick='deleteItem("${key}")'
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23dc3545'%3E%3Cpath d='M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z'/%3E%3C/svg%3E"
+              />
+
+            </td>
+          </tr>
+        `;
       });
     }
-    // ---------- Search Filter ----------
+
+    // SEARCH
     window.filterStock = function () {
       const text = searchInput.value.toLowerCase();
 
@@ -323,8 +351,8 @@
       get(dbRef).then(snapshot => {
         if (!snapshot.exists()) return;
 
-        const all = Object.values(snapshot.val());
-        const filtered = all.filter(i =>
+        const all = Object.entries(snapshot.val());
+        const filtered = all.filter(([key, i]) =>
           i.name.toLowerCase().includes(text) ||
           i.partno.toLowerCase().includes(text)
         );
