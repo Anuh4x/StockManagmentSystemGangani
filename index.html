@@ -87,13 +87,12 @@
       <table>
         <thead>
           <tr>
+            <th>Part No.</th>
             <th>Part Name</th>
             <th>Vehicle</th>
-            <th>Part No.</th>
             <th>Stock</th>
             <th>Buy Price</th>
             <th>Sell Price</th>
-            <th>Delete</th>
           </tr>
         </thead>
         <tbody id="stockTable"></tbody>
@@ -105,10 +104,9 @@
   <div class="popup-bg" id="popupBg">
     <div class="popup">
       <h3>Add New Part</h3>
-
+      <input type="text" id="partno" placeholder="Part Number" />
       <input type="text" id="pname" placeholder="Part Name" />
       <input type="text" id="vehicle" placeholder="Vehicle" />
-      <input type="text" id="partno" placeholder="Part Number" />
       <input type="number" id="stock" placeholder="Stock Amount" />
       <input type="number" id="buy" placeholder="Buy Price" />
       <input type="number" id="sell" placeholder="Sell Price" />
@@ -168,9 +166,9 @@
   window.addItem = function () {
     const item = {
       id: Date.now(),
+      partno: partno.value,
       name: pname.value,
       vehicle: vehicle.value,
-      partno: partno.value,
       stock: stock.value,
       buy: buy.value,
       sell: sell.value
@@ -208,9 +206,9 @@
     data.forEach(item => {
       table.innerHTML += `
       <tr>
+        <td>${item.partno}</td>
         <td>${item.name}</td>
         <td>${item.vehicle}</td>
-        <td>${item.partno}</td>
         <td>${item.stock}</td>
         <td>${item.buy}</td>
         <td>${item.sell}</td>
